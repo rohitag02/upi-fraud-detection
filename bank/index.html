@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudOps — Bank Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root {
+  --bg: #060609;
+  --s1: #0d0d14;
+  --s2: #12121e;
+  --s3: #1a1a2e;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --text: #e8e8f0;
+  --muted: #5a5a7a;
+  --muted2: #7a7a9a;
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,0.3);
+  --green: #0ecc7a;
+  --green-dim: rgba(14,204,122,0.12);
+  --amber: #f5a623;
+  --amber-dim: rgba(245,166,35,0.12);
+  --red: #ff4757;
+  --red-dim: rgba(255,71,87,0.12);
+  --blue: #3b82f6;
+  --blue-dim: rgba(59,130,246,0.12);
+  --font: 'Inter', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* Grid lines ambient effect */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(99,102,241,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(99,102,241,0.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;
+}
+
+/* TOP BAR */
+.topbar{
+  position:relative;z-index:100;
+  display:flex;align-items:center;
+  height:52px;padding:0 20px;
+  background:var(--s1);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  gap:0;
+}
+.brand{display:flex;align-items:center;gap:8px;padding-right:20px;border-right:1px solid var(--border);}
+.brand-icon{
+  width:28px;height:28px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;
+}
+.brand-name{font-size:14px;font-weight:600;letter-spacing:-0.3px;}
+.brand-tag{font-size:10px;color:var(--muted);font-family:var(--mono);}
+
+.nav-tabs{display:flex;gap:2px;margin-left:16px;flex:1;}
+.nav-tab{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 14px;border-radius:6px;
+  font-size:13px;color:var(--muted2);cursor:pointer;
+  transition:all 0.15s;position:relative;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+.nav-tab:hover{color:var(--text);background:var(--s2);}
+.nav-tab.active{color:var(--text);background:var(--s2);border-color:var(--border2);}
+.nav-tab-icon{font-size:14px;}
+.nav-badge{
+  background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;font-family:var(--mono);
+  padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;
+}
+
+.topbar-right{display:flex;align-items:center;gap:12px;margin-left:auto;}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:20px;
+  border:1px solid var(--border2);
+  font-size:11px;font-family:var(--mono);color:var(--muted2);
+}
+.pulse-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(14,204,122,0.6);
+  animation:pulse-anim 2s infinite;
+}
+@keyframes pulse-anim{
+  0%{box-shadow:0 0 0 0 rgba(14,204,122,0.6);}
+  70%{box-shadow:0 0 0 6px rgba(14,204,122,0);}
+  100%{box-shadow:0 0 0 0 rgba(14,204,122,0);}
+}
+.time-display{font-size:11px;font-family:var(--mono);color:var(--muted);}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* SIDEBAR */
+.sidebar{
+  width:220px;flex-shrink:0;
+  background:var(--s1);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+}
+.sidebar-section{padding:16px 14px 8px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;}
+.sidebar-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;font-size:13px;color:var(--muted2);cursor:pointer;
+  transition:all 0.15s;border-radius:0;
+}
+.sidebar-item:hover{color:var(--text);background:var(--s2);}
+.sidebar-item.active{color:var(--text);background:var(--s2);border-right:2px solid var(--accent);}
+.sidebar-item-left{display:flex;align-items:center;gap:8px;}
+.sidebar-count{
+  font-size:10px;font-family:var(--mono);
+  padding:1px 7px;border-radius:10px;font-weight:500;
+}
+.sc-red{background:var(--red-dim);color:var(--red);}
+.sc-amber{background:var(--amber-dim);color:var(--amber);}
+.sc-green{background:var(--green-dim);color:var(--green);}
+.sc-blue{background:var(--blue-dim);color:var(--blue);}
+
+.sidebar-divider{height:1px;background:var(--border);margin:8px 14px;}
+
+.model-card{
+  margin:12px;padding:14px;
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+}
+.model-title{font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;}
+.model-metric{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.model-key{font-size:11px;color:var(--muted2);}
+.model-val{font-size:12px;font-family:var(--mono);font-weight:500;}
+
+/* MAIN CONTENT */
+.main{flex:1;overflow-y:auto;padding:20px;}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;position:relative;overflow:hidden;
+  transition:border-color 0.2s;
+}
+.stat-card:hover{border-color:var(--border2);}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  border-radius:12px 12px 0 0;
+}
+.stat-blue::before{background:linear-gradient(90deg,var(--blue),transparent);}
+.stat-green::before{background:linear-gradient(90deg,var(--green),transparent);}
+.stat-amber::before{background:linear-gradient(90deg,var(--amber),transparent);}
+.stat-red::before{background:linear-gradient(90deg,var(--red),transparent);}
+
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;font-weight:500;}
+.stat-val{font-size:30px;font-weight:600;letter-spacing:-1px;font-family:var(--mono);line-height:1;}
+.stat-sub{font-size:11px;margin-top:6px;display:flex;align-items:center;gap:4px;}
+.stat-blue .stat-val{color:var(--blue);}
+.stat-green .stat-val{color:var(--green);}
+.stat-amber .stat-val{color:var(--amber);}
+.stat-red .stat-val{color:var(--red);}
+
+/* GRID LAYOUT */
+.content-grid{display:grid;grid-template-columns:1fr 320px;gap:16px;}
+.full-width{grid-column:1/-1;}
+
+/* CARDS */
+.panel{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;
+}
+.panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.panel-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.panel-title-icon{font-size:14px;}
+.panel-meta{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.panel-body{padding:16px 18px;}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{
+  padding:8px 12px;text-align:left;
+  color:var(--muted);font-weight:500;font-size:10px;
+  text-transform:uppercase;letter-spacing:0.07em;
+  border-bottom:1px solid var(--border);
+}
+.data-table td{
+  padding:10px 12px;color:var(--muted2);
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  transition:background 0.15s;
+}
+.data-table tr:hover td{background:var(--s2);color:var(--text);}
+.data-table tr:last-child td{border-bottom:none;}
+
+/* Score ring */
+.score-ring{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;font-family:var(--mono);
+  border:1.5px solid;flex-shrink:0;
+}
+.sr-green{background:var(--green-dim);border-color:rgba(14,204,122,0.4);color:var(--green);}
+.sr-amber{background:var(--amber-dim);border-color:rgba(245,166,35,0.4);color:var(--amber);}
+.sr-red{background:var(--red-dim);border-color:rgba(255,71,87,0.4);color:var(--red);}
+
+/* Decision badge */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:5px;
+  font-size:10px;font-weight:600;font-family:var(--mono);
+  letter-spacing:0.05em;
+}
+.b-approved{background:var(--green-dim);color:var(--green);}
+.b-review{background:var(--amber-dim);color:var(--amber);}
+.b-blocked{background:var(--red-dim);color:var(--red);}
+
+/* Review action buttons */
+.action-btn{
+  padding:4px 11px;border-radius:5px;font-size:11px;font-weight:500;
+  cursor:pointer;border:1px solid;font-family:var(--font);
+  transition:all 0.15s;
+}
+.ab-approve{background:var(--green-dim);border-color:rgba(14,204,122,0.3);color:var(--green);}
+.ab-approve:hover{background:rgba(14,204,122,0.2);}
+.ab-block{background:var(--red-dim);border-color:rgba(255,71,87,0.3);color:var(--red);}
+.ab-block:hover{background:rgba(255,71,87,0.2);}
+
+/* Alert feed */
+.alert-feed{display:flex;flex-direction:column;gap:8px;}
+.alert-item{
+  padding:11px 13px;border-radius:8px;
+  background:var(--s2);border:1px solid var(--border);
+  border-left:2px solid var(--red);
+}
+.alert-item.alert-review{border-left-color:var(--amber);}
+.alert-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.alert-amount{font-size:13px;font-weight:600;font-family:var(--mono);color:var(--red);}
+.alert-amount.review{color:var(--amber);}
+.alert-time{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.alert-upi{font-size:11px;color:var(--muted2);margin-bottom:4px;}
+.alert-reasons{display:flex;flex-wrap:wrap;gap:4px;}
+.alert-tag{
+  font-size:9px;padding:2px 7px;border-radius:4px;
+  background:var(--red-dim);color:var(--red);
+  font-family:var(--mono);
+}
+
+/* Mini bar chart */
+.mini-chart{display:flex;flex-direction:column;gap:8px;}
+.chart-row{display:flex;align-items:center;gap:10px;}
+.chart-label{font-size:11px;color:var(--muted2);width:120px;flex-shrink:0;}
+.chart-track{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden;}
+.chart-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 1.2s cubic-bezier(0.22,1,0.36,1);}
+.chart-pct{font-size:11px;font-family:var(--mono);color:var(--muted);width:38px;text-align:right;}
+
+/* ML performance */
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.perf-item{
+  padding:12px 14px;border-radius:8px;
+  background:var(--s2);border:1px solid var(--border);
+}
+.perf-val{font-size:20px;font-weight:600;font-family:var(--mono);color:var(--accent);}
+.perf-key{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.07em;}
+.perf-green{color:var(--green) !important;}
+
+/* Empty state */
+.empty{padding:32px;text-align:center;color:var(--muted);font-size:13px;}
+
+/* Sparkline (mini) */
+.spark-row{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:6px;}
+.spark-b{border-radius:2px 2px 0 0;transition:height 0.5s ease;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px;}
+
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+.slide-in{animation:slideIn 0.3s ease forwards;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fade-in{animation:fadeIn 0.3s ease forwards;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">F</div>
+    <div>
+      <div class="brand-name">FraudOps</div>
+      <div class="brand-tag">v2.1 · RandomForest + GB</div>
+    </div>
+  </div>
+  <div class="nav-tabs" id="nav-tabs"></div>
+  <div class="topbar-right">
+    <div class="status-pill">
+      <div class="pulse-dot"></div>
+      <span id="api-status">Live</span>
+    </div>
+    <div class="time-display" id="clock"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Navigation</div>
+    <div class="sidebar-item active" onclick="switchTab('overview')">
+      <div class="sidebar-item-left"><span>📊</span> Overview</div>
+    </div>
+    <div class="sidebar-item" onclick="switchTab('transactions')">
+      <div class="sidebar-item-left"><span>📋</span> All Transactions</div>
+      <span class="sidebar-count sc-blue" id="sb-total">0</span>
+    </div>
+    <div class="sidebar-item" onclick="switchTab('alerts')">
+      <div class="sidebar-item-left"><span>🚨</span> Blocked</div>
+      <span class="sidebar-count sc-red" id="sb-blocked">0</span>
+    </div>
+    <div class="sidebar-item" onclick="switchTab('review')">
+      <div class="sidebar-item-left"><span>🔍</span> Review Queue</div>
+      <span class="sidebar-count sc-amber" id="sb-review">0</span>
+    </div>
+    <div class="sidebar-item" onclick="switchTab('model')">
+      <div class="sidebar-item-left"><span>🤖</span> ML Model</div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">Live Intel</div>
+    <div class="model-card">
+      <div class="model-title">Model Performance</div>
+      <div class="model-metric">
+        <span class="model-key">Accuracy</span>
+        <span class="model-val" style="color:var(--green)">97.8%</span>
+      </div>
+      <div class="model-metric">
+        <span class="model-key">AUC-ROC</span>
+        <span class="model-val" style="color:var(--accent)">0.963</span>
+      </div>
+      <div class="model-metric">
+        <span class="model-key">Precision</span>
+        <span class="model-val">88.1%</span>
+      </div>
+      <div class="model-metric">
+        <span class="model-key">Recall</span>
+        <span class="model-val">91.7%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-content"></div>
+</div>
+
+<script type="text/babel">
+const API = 'http://localhost:4000/api';
+let currentTab = 'overview';
+let allTxns = [];
+let stats = {total:0,blocked:0,review:0,approved:0};
+let fraudCats = [];
+let chartAnimated = false;
+
+// Clock
+setInterval(()=>{
+  const now = new Date();
+  const el = document.getElementById('clock');
+  if(el) el.textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}, 1000);
+
+// API check
+fetch(API+'/health').then(r=>r.json())
+  .then(()=>{ const el=document.getElementById('api-status'); if(el) el.textContent='Live'; })
+  .catch(()=>{ const el=document.getElementById('api-status'); if(el){ el.textContent='Offline'; el.style.color='var(--red)'; }});
+
+// Nav tabs rendering
+function renderNavTabs() {
+  const tabs = [
+    {id:'overview', label:'Overview'},
+    {id:'transactions', label:'Transactions'},
+    {id:'alerts', label:'Blocked', badge:true},
+    {id:'review', label:'Review Queue', badge:true, reviewBadge:true},
+    {id:'model', label:'ML Performance'},
+  ];
+  const container = document.getElementById('nav-tabs');
+  if(!container) return;
+  const blocked = allTxns.filter(t=>t.decision==='BLOCKED').length;
+  const review = allTxns.filter(t=>t.decision==='REVIEW'&&!t.reviewed).length;
+  container.innerHTML = tabs.map(t=>`
+    <div class="nav-tab ${currentTab===t.id?'active':''}" onclick="switchTab('${t.id}')">
+      ${t.label}
+      ${t.reviewBadge&&review>0?`<span class="nav-badge">${review}</span>`:''}
+    </div>
+  `).join('');
+}
+
+async function fetchData() {
+  try {
+    const [txns, s, cats] = await Promise.all([
+      fetch(API+'/transactions').then(r=>r.json()),
+      fetch(API+'/transactions/stats').then(r=>r.json()),
+      fetch(API+'/analytics/fraud-categories').then(r=>r.json()),
+    ]);
+    allTxns = txns;
+    stats = s;
+    fraudCats = cats;
+
+    // Update sidebar counts
+    const setEl = (id,val)=>{ const e=document.getElementById(id); if(e) e.textContent=val; };
+    setEl('sb-total', s.total||0);
+    setEl('sb-blocked', s.blocked||0);
+    setEl('sb-review', s.review||0);
+
+    renderNavTabs();
+    renderCurrentTab();
+  } catch(e) {}
+}
+
+window.switchTab = function(tab) {
+  currentTab = tab;
+  chartAnimated = false;
+  // Sidebar highlight
+  document.querySelectorAll('.sidebar-item').forEach(el=>{
+    const fn = el.getAttribute('onclick');
+    el.classList.toggle('active', fn && fn.includes(`'${tab}'`));
+  });
+  renderNavTabs();
+  renderCurrentTab();
+};
+
+function renderCurrentTab() {
+  const main = document.getElementById('main-content');
+  if(!main) return;
+  if(currentTab==='overview')      main.innerHTML = renderOverview();
+  else if(currentTab==='transactions') main.innerHTML = renderTransactions();
+  else if(currentTab==='alerts')   main.innerHTML = renderAlerts();
+  else if(currentTab==='review')   main.innerHTML = renderReview();
+  else if(currentTab==='model')    main.innerHTML = renderModel();
+
+  // Animate chart bars after render
+  if(currentTab==='overview' && !chartAnimated) {
+    setTimeout(()=>{
+      fraudCats.forEach((cat,i)=>{
+        const bar = document.getElementById('bar-'+i);
+        if(bar) bar.style.width = cat.percentage + '%';
+      });
+      chartAnimated = true;
+    }, 50);
+  }
+}
+
+function scoreClass(s){ return s>=80?'sr-red':s>=50?'sr-amber':'sr-green'; }
+function decBadge(d){ return d==='BLOCKED'?'b-blocked':d==='REVIEW'?'b-review':'b-approved'; }
+function fmt(n){ return Number(n).toLocaleString('en-IN'); }
+function fmtTime(ts){ return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); }
+
+function renderStatCards() {
+  return `
+  <div class="stats-grid fade-in">
+    <div class="stat-card stat-blue">
+      <div class="stat-label">Total Transactions</div>
+      <div class="stat-val">${stats.total||0}</div>
+      <div class="stat-sub" style="color:var(--blue)">↑ All time</div>
+    </div>
+    <div class="stat-card stat-green">
+      <div class="stat-label">Approved</div>
+      <div class="stat-val">${stats.approved||0}</div>
+      <div class="stat-sub" style="color:var(--green)">✓ Cleared</div>
+    </div>
+    <div class="stat-card stat-amber">
+      <div class="stat-label">Under Review</div>
+      <div class="stat-val">${stats.review||0}</div>
+      <div class="stat-sub" style="color:var(--amber)">⚠ Pending</div>
+    </div>
+    <div class="stat-card stat-red">
+      <div class="stat-label">Blocked</div>
+      <div class="stat-val">${stats.blocked||0}</div>
+      <div class="stat-sub" style="color:var(--red)">🛑 Fraud rate: ${stats.fraudRate||'0%'}</div>
+    </div>
+  </div>`;
+}
+
+function renderOverview() {
+  const recent = allTxns.slice(0,8);
+  const blocked = allTxns.filter(t=>t.decision==='BLOCKED').slice(0,5);
+  return `
+  ${renderStatCards()}
+  <div class="content-grid">
+    <div>
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><span class="panel-title-icon">📋</span> Recent Transactions</div>
+          <div class="panel-meta">${allTxns.length} total</div>
+        </div>
+        ${recent.length===0
+          ? '<div class="empty">No transactions yet. Open customer/index.html to make a payment.</div>'
+          : `<table class="data-table">
+              <thead><tr>
+                <th>ID</th><th>Sender</th><th>UPI Handle</th><th>Amount</th>
+                <th>Risk</th><th>Decision</th><th>Time</th>
+              </tr></thead>
+              <tbody>${recent.map(t=>`
+                <tr>
+                  <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${t.id.slice(-8)}</td>
+                  <td>${t.senderName||'—'}</td>
+                  <td style="font-family:var(--mono);font-size:11px">${t.upiId}</td>
+                  <td style="font-family:var(--mono);font-weight:500;color:var(--text)">₹${fmt(t.amount)}</td>
+                  <td><div class="score-ring ${scoreClass(t.riskScore)}">${t.riskScore}</div></td>
+                  <td><span class="badge ${decBadge(t.decision)}">${t.decision}</span></td>
+                  <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${fmtTime(t.timestamp)}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>`
+        }
+      </div>
+    </div>
+    <div>
+      <div class="panel fade-in" style="margin-bottom:14px">
+        <div class="panel-header">
+          <div class="panel-title"><span class="panel-title-icon">📊</span> Fraud Categories</div>
+        </div>
+        <div class="panel-body">
+          <div class="mini-chart">
+            ${fraudCats.map((c,i)=>`
+              <div class="chart-row">
+                <div class="chart-label">${c.category}</div>
+                <div class="chart-track"><div class="chart-fill" id="bar-${i}" style="width:0%"></div></div>
+                <div class="chart-pct">${c.percentage}%</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><span class="panel-title-icon">🚨</span> Live Alerts</div>
+          <div class="panel-meta">Blocked + Review</div>
+        </div>
+        <div class="panel-body" style="max-height:240px;overflow-y:auto">
+          ${blocked.length===0
+            ? '<div class="empty" style="padding:16px">No alerts yet</div>'
+            : '<div class="alert-feed">' + blocked.map(t=>`
+                <div class="alert-item">
+                  <div class="alert-top">
+                    <span class="alert-amount">₹${fmt(t.amount)}</span>
+                    <span class="alert-time">${fmtTime(t.timestamp)}</span>
+                  </div>
+                  <div class="alert-upi">${t.upiId} · Score: ${t.riskScore}</div>
+                  <div class="alert-reasons">${(t.reasons||[]).slice(0,2).map(r=>`<span class="alert-tag">${r}</span>`).join('')}</div>
+                </div>`).join('') + '</div>'
+          }
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTransactions() {
+  return `
+  ${renderStatCards()}
+  <div class="panel fade-in">
+    <div class="panel-header">
+      <div class="panel-title"><span class="panel-title-icon">📋</span> All Transactions</div>
+      <div class="panel-meta">${allTxns.length} records</div>
+    </div>
+    ${allTxns.length===0
+      ? '<div class="empty">No transactions yet.</div>'
+      : `<table class="data-table">
+          <thead><tr>
+            <th>Transaction ID</th><th>Sender</th><th>UPI Handle</th><th>Amount</th>
+            <th>Risk Score</th><th>Decision</th><th>Confidence</th><th>Time</th>
+          </tr></thead>
+          <tbody>${allTxns.map(t=>`
+            <tr>
+              <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${t.id}</td>
+              <td style="color:var(--text)">${t.senderName||'—'}</td>
+              <td style="font-family:var(--mono);font-size:11px">${t.upiId}</td>
+              <td style="font-family:var(--mono);font-weight:600;color:var(--text)">₹${fmt(t.amount)}</td>
+              <td><div class="score-ring ${scoreClass(t.riskScore)}">${t.riskScore}</div></td>
+              <td><span class="badge ${decBadge(t.decision)}">${t.decision}</span></td>
+              <td style="font-size:11px;color:var(--muted2)">${t.confidence||'—'}</td>
+              <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${fmtTime(t.timestamp)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`
+    }
+  </div>`;
+}
+
+function renderAlerts() {
+  const blocked = allTxns.filter(t=>t.decision==='BLOCKED');
+  return `
+  <div class="stats-grid fade-in" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card stat-red">
+      <div class="stat-label">Total Blocked</div>
+      <div class="stat-val">${blocked.length}</div>
+    </div>
+    <div class="stat-card stat-amber">
+      <div class="stat-label">Blocked Value</div>
+      <div class="stat-val" style="font-size:20px">₹${fmt(blocked.reduce((a,t)=>a+ +t.amount,0))}</div>
+    </div>
+    <div class="stat-card stat-green">
+      <div class="stat-label">Fraud Rate</div>
+      <div class="stat-val">${stats.fraudRate||'0%'}</div>
+    </div>
+  </div>
+  <div class="panel fade-in">
+    <div class="panel-header">
+      <div class="panel-title"><span class="panel-title-icon">🚨</span> Blocked Transactions</div>
+    </div>
+    ${blocked.length===0
+      ? '<div class="empty">No blocked transactions yet.</div>'
+      : `<table class="data-table">
+          <thead><tr>
+            <th>ID</th><th>Sender</th><th>UPI</th><th>Amount</th>
+            <th>Score</th><th>Risk Factors</th><th>Time</th>
+          </tr></thead>
+          <tbody>${blocked.map(t=>`
+            <tr>
+              <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${t.id.slice(-8)}</td>
+              <td style="color:var(--text)">${t.senderName||'—'}</td>
+              <td style="font-family:var(--mono);font-size:11px">${t.upiId}</td>
+              <td style="font-family:var(--mono);font-weight:600;color:var(--red)">₹${fmt(t.amount)}</td>
+              <td><div class="score-ring sr-red">${t.riskScore}</div></td>
+              <td style="font-size:11px;color:var(--muted2);max-width:200px">${(t.reasons||[]).join(' · ')}</td>
+              <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${fmtTime(t.timestamp)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`
+    }
+  </div>`;
+}
+
+function renderReview() {
+  const review = allTxns.filter(t=>t.decision==='REVIEW'&&!t.reviewed);
+  const reviewed = allTxns.filter(t=>t.reviewed);
+  return `
+  <div class="stats-grid fade-in" style="grid-template-columns:repeat(2,1fr)">
+    <div class="stat-card stat-amber">
+      <div class="stat-label">Pending Review</div>
+      <div class="stat-val">${review.length}</div>
+    </div>
+    <div class="stat-card stat-green">
+      <div class="stat-label">Reviewed</div>
+      <div class="stat-val">${reviewed.length}</div>
+    </div>
+  </div>
+  <div class="panel fade-in">
+    <div class="panel-header">
+      <div class="panel-title"><span class="panel-title-icon">🔍</span> Manual Review Queue</div>
+      <div class="panel-meta">${review.length} pending</div>
+    </div>
+    ${review.length===0
+      ? '<div class="empty">No transactions pending review. Great work!</div>'
+      : `<table class="data-table">
+          <thead><tr>
+            <th>ID</th><th>Sender</th><th>UPI</th><th>Amount</th>
+            <th>Score</th><th>Risk Factors</th><th>Action</th>
+          </tr></thead>
+          <tbody>${review.map(t=>`
+            <tr>
+              <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${t.id.slice(-8)}</td>
+              <td style="color:var(--text)">${t.senderName||'—'}</td>
+              <td style="font-family:var(--mono);font-size:11px">${t.upiId}</td>
+              <td style="font-family:var(--mono);font-weight:600;color:var(--amber)">₹${fmt(t.amount)}</td>
+              <td><div class="score-ring sr-amber">${t.riskScore}</div></td>
+              <td style="font-size:11px;color:var(--muted2);max-width:180px">${(t.reasons||[]).join(' · ')}</td>
+              <td style="display:flex;gap:6px;align-items:center">
+                <button class="action-btn ab-approve" onclick="markReview('${t.id}','APPROVED')">✓ Approve</button>
+                <button class="action-btn ab-block" onclick="markReview('${t.id}','BLOCKED')">✕ Block</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`
+    }
+  </div>`;
+}
+
+function renderModel() {
+  return `
+  <div class="panel fade-in">
+    <div class="panel-header">
+      <div class="panel-title"><span class="panel-title-icon">🤖</span> ML Model Performance</div>
+      <div class="panel-meta">RandomForest + GradientBoosting Ensemble</div>
+    </div>
+    <div class="panel-body">
+      <div class="perf-grid">
+        <div class="perf-item">
+          <div class="perf-val perf-green">97.8%</div>
+          <div class="perf-key">Accuracy</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-val" style="color:var(--accent)">0.963</div>
+          <div class="perf-key">AUC-ROC</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-val">88.1%</div>
+          <div class="perf-key">Precision</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-val">91.7%</div>
+          <div class="perf-key">Recall</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-val">89.8%</div>
+          <div class="perf-key">F1 Score</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-val">10,000</div>
+          <div class="perf-key">Training Samples</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:var(--s2);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:12px;font-weight:600">Feature Importance</div>
+        <div class="mini-chart">
+          ${[
+            ['Transaction Amount',88],
+            ['Velocity (1h)',82],
+            ['Location Anomaly',74],
+            ['New Beneficiary',68],
+            ['Merchant Score',55],
+            ['Device Age',48],
+            ['Hour of Day',40],
+          ].map((f,i)=>`
+            <div class="chart-row">
+              <div class="chart-label">${f[0]}</div>
+              <div class="chart-track"><div class="chart-fill" style="width:${f[1]}%;background:${f[1]>70?'var(--accent)':f[1]>55?'var(--blue)':'var(--muted)'}"></div></div>
+              <div class="chart-pct">${f[1]}%</div>
+            </div>`).join('')
+          }
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:14px;background:var(--s2);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:10px;font-weight:600">Risk Thresholds</div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1;padding:10px;background:var(--green-dim);border:1px solid rgba(14,204,122,0.2);border-radius:6px;text-align:center">
+            <div style="font-size:11px;color:var(--green);font-family:var(--mono);font-weight:600">Score 0–49</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px">APPROVED</div>
+          </div>
+          <div style="flex:1;padding:10px;background:var(--amber-dim);border:1px solid rgba(245,166,35,0.2);border-radius:6px;text-align:center">
+            <div style="font-size:11px;color:var(--amber);font-family:var(--mono);font-weight:600">Score 50–79</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px">REVIEW</div>
+          </div>
+          <div style="flex:1;padding:10px;background:var(--red-dim);border:1px solid rgba(255,71,87,0.2);border-radius:6px;text-align:center">
+            <div style="font-size:11px;color:var(--red);font-family:var(--mono);font-weight:600">Score 80–100</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px">BLOCKED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.markReview = async function(id, decision) {
+  try {
+    await fetch(API+'/transactions/'+id+'/review',{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({decision, note:'Reviewed by analyst'})
+    });
+    await fetchData();
+  } catch(e) {}
+};
+
+// Init
+renderNavTabs();
+renderCurrentTab();
+fetchData();
+setInterval(fetchData, 4000);
+</script>
+
+</body>
+</html>

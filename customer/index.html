@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaySafe — Secure UPI Payments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1a1a26;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f0f8;
+  --muted: #6b6b8a;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --green: #10d97e;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* Ambient background */
+body::before{
+  content:'';position:fixed;top:-40%;left:-20%;width:60%;height:60%;
+  background:radial-gradient(ellipse,rgba(99,102,241,0.12) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;bottom:-20%;right:-10%;width:50%;height:50%;
+  background:radial-gradient(ellipse,rgba(16,217,126,0.06) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Nav */
+.nav{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;height:64px;
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  background:rgba(10,10,15,0.8);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;letter-spacing:-0.3px;}
+.nav-logo-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+}
+.nav-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:20px;
+  border:1px solid var(--border2);
+  font-size:12px;font-family:var(--mono);color:var(--muted);
+}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+
+/* Main layout */
+.page{
+  position:relative;z-index:1;
+  min-height:calc(100vh - 64px);
+  display:flex;align-items:center;justify-content:center;
+  padding:40px 20px;
+}
+.card{
+  width:100%;max-width:460px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  overflow:hidden;
+}
+.card-header{
+  padding:28px 32px 24px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,var(--surface2) 0%,var(--surface) 100%);
+}
+.card-title{font-size:22px;font-weight:600;letter-spacing:-0.5px;margin-bottom:6px;}
+.card-sub{font-size:13px;color:var(--muted);}
+.card-body{padding:28px 32px;}
+
+/* Form fields */
+.field{margin-bottom:20px;}
+.label{
+  display:block;font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--muted);margin-bottom:8px;
+}
+.input-wrap{position:relative;}
+.input{
+  width:100%;padding:13px 16px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text);font-family:var(--font);font-size:15px;
+  outline:none;transition:all 0.2s;
+}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,0.15);}
+.input::placeholder{color:var(--muted);}
+.input-prefix{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  font-size:18px;font-weight:600;color:var(--muted);pointer-events:none;
+}
+.input-amount{padding-left:28px !important;font-size:22px !important;font-weight:600 !important;font-family:var(--mono) !important;letter-spacing:-0.5px;}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+select.input{cursor:pointer;}
+select.input option{background:var(--surface);color:var(--text);}
+
+/* Security badge */
+.security-row{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-radius:8px;
+  background:rgba(16,217,126,0.06);
+  border:1px solid rgba(16,217,126,0.15);
+  margin-bottom:20px;
+}
+.security-text{font-size:12px;color:rgba(16,217,126,0.9);}
+
+/* Pay button */
+.btn-pay{
+  width:100%;padding:15px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  border:none;border-radius:12px;
+  color:#fff;font-family:var(--font);font-size:15px;font-weight:600;
+  cursor:pointer;letter-spacing:-0.2px;
+  transition:all 0.2s;
+  position:relative;overflow:hidden;
+}
+.btn-pay::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);
+  opacity:0;transition:opacity 0.2s;
+}
+.btn-pay:hover::before{opacity:1;}
+.btn-pay:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,0.4);}
+.btn-pay:active{transform:translateY(0);}
+.btn-pay:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* Loading state */
+.loading-view{padding:60px 32px;text-align:center;}
+.spinner-ring{
+  width:56px;height:56px;border-radius:50%;
+  border:3px solid var(--border2);
+  border-top-color:var(--accent);
+  animation:spin 0.7s linear infinite;
+  margin:0 auto 20px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-title{font-size:18px;font-weight:500;margin-bottom:8px;}
+.loading-sub{font-size:13px;color:var(--muted);}
+.loading-steps{
+  display:flex;flex-direction:column;gap:8px;
+  margin-top:24px;text-align:left;
+  padding:16px;background:var(--bg);border-radius:10px;
+  border:1px solid var(--border);
+}
+.loading-step{
+  display:flex;align-items:center;gap:10px;
+  font-size:12px;font-family:var(--mono);color:var(--muted);
+}
+.step-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;}
+.step-active .step-dot{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.step-done .step-dot{background:var(--green);}
+.step-active{color:var(--text);}
+.step-done{color:var(--green);}
+
+/* Result view */
+.result-view{padding:0;}
+.result-header{
+  padding:40px 32px 28px;
+  text-align:center;
+  position:relative;
+}
+.result-icon-wrap{
+  width:72px;height:72px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;margin:0 auto 16px;
+  position:relative;
+}
+.result-icon-wrap::after{
+  content:'';position:absolute;inset:-8px;border-radius:50%;
+  border:2px solid transparent;animation:ring-pulse 2s infinite;
+}
+@keyframes ring-pulse{
+  0%,100%{transform:scale(1);opacity:0.6;}
+  50%{transform:scale(1.05);opacity:1;}
+}
+.result-icon-approved{background:rgba(16,217,126,0.12);}
+.result-icon-approved::after{border-color:rgba(16,217,126,0.3);}
+.result-icon-review{background:rgba(245,158,11,0.12);}
+.result-icon-review::after{border-color:rgba(245,158,11,0.3);}
+.result-icon-blocked{background:rgba(239,68,68,0.12);}
+.result-icon-blocked::after{border-color:rgba(239,68,68,0.3);}
+
+.result-decision{font-size:24px;font-weight:600;letter-spacing:-0.5px;margin-bottom:8px;}
+.result-msg{font-size:14px;color:var(--muted);line-height:1.7;max-width:320px;margin:0 auto;}
+
+.score-bar-wrap{
+  padding:0 32px 20px;
+}
+.score-label-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.score-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:600;}
+.score-number{font-size:20px;font-weight:600;font-family:var(--mono);}
+.score-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.score-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(0.22,1,0.36,1);}
+
+.result-details{padding:0 32px 28px;}
+.detail-section-title{
+  font-size:11px;text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--muted);font-weight:600;margin-bottom:12px;
+}
+.reason-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:6px;font-size:12px;
+  background:rgba(239,68,68,0.08);
+  border:1px solid rgba(239,68,68,0.2);
+  color:rgba(239,68,68,0.9);
+  margin:0 6px 6px 0;
+}
+.reason-tag-ok{
+  background:rgba(16,217,126,0.08);
+  border:1px solid rgba(16,217,126,0.2);
+  color:rgba(16,217,126,0.9);
+}
+.txn-summary{
+  background:var(--bg);border-radius:10px;
+  border:1px solid var(--border);
+  padding:14px 16px;margin-top:16px;
+}
+.txn-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;}
+.txn-key{font-size:12px;color:var(--muted);}
+.txn-val{font-size:13px;font-weight:500;font-family:var(--mono);}
+.txn-id{font-size:10px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-family:var(--mono);}
+
+.result-footer{
+  padding:20px 32px;border-top:1px solid var(--border);
+  display:flex;justify-content:center;
+}
+.btn-retry{
+  padding:10px 28px;border-radius:8px;
+  border:1px solid var(--border2);
+  background:transparent;color:var(--text);
+  font-family:var(--font);font-size:14px;cursor:pointer;
+  transition:all 0.2s;
+}
+.btn-retry:hover{background:var(--surface2);border-color:var(--accent);}
+
+/* Trust badges */
+.trust-row{
+  display:flex;justify-content:center;gap:20px;
+  padding:20px 0 0;
+}
+.trust-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeIn 0.4s ease forwards;}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);}}
+.scale-in{animation:scaleIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">
+    <div class="nav-logo-icon">⚡</div>
+    PaySafe
+  </div>
+  <div class="nav-pill">
+    <div class="nav-dot"></div>
+    <span id="api-status-text">Connecting...</span>
+  </div>
+</nav>
+
+<div class="page">
+  <div id="root"></div>
+</div>
+
+<script type="text/babel">
+const API = 'http://localhost:4000/api';
+
+function App() {
+  const [step, setStep] = React.useState('form');
+  const [result, setResult] = React.useState(null);
+  const [loadStep, setLoadStep] = React.useState(0);
+  const [scoreAnim, setScoreAnim] = React.useState(0);
+  const [form, setForm] = React.useState({
+    senderName:'', upiId:'', amount:'', note:'',
+    hour: new Date().getHours(),
+    velocity1h:1, merchantScore:0.8,
+    deviceAgeDays:365, locationAnomaly:0, newBeneficiary:0
+  });
+
+  React.useEffect(() => {
+    fetch(API+'/health').then(r=>r.json())
+      .then(()=>{ document.getElementById('api-status-text').textContent='Secure Connection'; })
+      .catch(()=>{ document.getElementById('api-status-text').textContent='Offline'; });
+  }, []);
+
+  function upd(k,v){ setForm(f=>({...f,[k]:v})); }
+
+  async function handlePay() {
+    if(!form.senderName||!form.upiId||!form.amount){
+      alert('Please fill in name, UPI ID, and amount.'); return;
+    }
+    setStep('loading'); setLoadStep(0);
+    const steps = [0,1,2,3];
+    steps.forEach((s,i)=> setTimeout(()=>setLoadStep(i+1), i*600));
+    try {
+      const r = await fetch(API+'/transactions/score',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({...form, amount:+form.amount})
+      });
+      const d = await r.json();
+      setTimeout(()=>{
+        setResult(d); setStep('result');
+        setTimeout(()=>setScoreAnim(d.riskScore), 300);
+      }, 2400);
+    } catch(e) {
+      alert('Cannot connect to backend. Make sure npm run dev is running on port 4000.');
+      setStep('form');
+    }
+  }
+
+  function reset() {
+    setStep('form'); setResult(null); setScoreAnim(0);
+    setForm(f=>({...f, senderName:'', upiId:'', amount:'', note:''}));
+  }
+
+  const cfg = {
+    APPROVED:{icon:'✓', title:'Payment Approved', color:'var(--green)',
+      msg:'Your payment has been verified and processed. The recipient will receive funds within seconds.',cls:'approved'},
+    REVIEW:{icon:'~', title:'Payment Under Review', color:'var(--amber)',
+      msg:'Our system flagged this for manual review. No funds deducted yet. You\'ll hear back within 2 hours.',cls:'review'},
+    BLOCKED:{icon:'✕', title:'Payment Blocked', color:'var(--red)',
+      msg:'This transaction was blocked by our fraud protection. No money was deducted. Contact support if you believe this is an error.',cls:'blocked'},
+  };
+
+  const scoreColor = s => s>=80 ? 'var(--red)' : s>=50 ? 'var(--amber)' : 'var(--green)';
+
+  return (
+    <div>
+      {step==='form' && (
+        <div className="card fade-in">
+          <div className="card-header">
+            <div className="card-title">Send Money</div>
+            <div className="card-sub">Protected by AI fraud detection</div>
+          </div>
+          <div className="card-body">
+            <div className="security-row">
+              <span style={{fontSize:14}}>🔒</span>
+              <span className="security-text">256-bit encrypted · AI-powered fraud check · Instant verification</span>
+            </div>
+            <div className="field">
+              <label className="label">Your Name</label>
+              <input className="input" value={form.senderName}
+                onChange={e=>upd('senderName',e.target.value)} placeholder="Full name" />
+            </div>
+            <div className="field">
+              <label className="label">Recipient UPI ID</label>
+              <input className="input" value={form.upiId}
+                onChange={e=>upd('upiId',e.target.value)} placeholder="name@upi or 9876543210@paytm" />
+            </div>
+            <div className="field">
+              <label className="label">Amount</label>
+              <div className="input-wrap">
+                <span className="input-prefix">₹</span>
+                <input className="input input-amount" type="number" min="1"
+                  value={form.amount} onChange={e=>upd('amount',e.target.value)} placeholder="0" />
+              </div>
+            </div>
+            <div className="field">
+              <label className="label">Note (optional)</label>
+              <input className="input" value={form.note}
+                onChange={e=>upd('note',e.target.value)} placeholder="Rent, groceries, etc." />
+            </div>
+            <div className="row" style={{marginBottom:20}}>
+              <div className="field" style={{margin:0}}>
+                <label className="label">New contact?</label>
+                <select className="input" value={form.newBeneficiary}
+                  onChange={e=>upd('newBeneficiary',+e.target.value)}>
+                  <option value={0}>No — known contact</option>
+                  <option value={1}>Yes — first time</option>
+                </select>
+              </div>
+              <div className="field" style={{margin:0}}>
+                <label className="label">Device age</label>
+                <select className="input" value={form.deviceAgeDays}
+                  onChange={e=>upd('deviceAgeDays',+e.target.value)}>
+                  <option value={365}>Over 1 year</option>
+                  <option value={90}>3–12 months</option>
+                  <option value={30}>1–3 months</option>
+                  <option value={3}>Less than 1 week</option>
+                </select>
+              </div>
+            </div>
+            <button className="btn-pay" onClick={handlePay}>
+              Pay ₹{form.amount ? Number(form.amount).toLocaleString('en-IN') : '0'} →
+            </button>
+            <div className="trust-row">
+              <div className="trust-item">🛡️ RBI Compliant</div>
+              <div className="trust-item">⚡ 10ms detection</div>
+              <div className="trust-item">🔐 End-to-end encrypted</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step==='loading' && (
+        <div className="card fade-in">
+          <div className="loading-view">
+            <div className="spinner-ring"></div>
+            <div className="loading-title">Securing your payment</div>
+            <div className="loading-sub">Running {'>'}50 fraud signals in real-time</div>
+            <div className="loading-steps">
+              {[
+                'Verifying UPI handle...',
+                'Analyzing transaction velocity...',
+                'Running ML fraud model...',
+                'Generating risk assessment...'
+              ].map((s,i)=>(
+                <div key={i} className={`loading-step ${loadStep>i?'step-done':loadStep===i?'step-active':''}`}>
+                  <div className="step-dot"></div>
+                  {s}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step==='result' && result && (()=>{
+        const c = cfg[result.decision] || cfg.APPROVED;
+        return (
+          <div className="card scale-in" style={{maxWidth:480}}>
+            <div className={`result-header result-header-${c.cls}`}>
+              <div className={`result-icon-wrap result-icon-${c.cls}`}>
+                <span style={{color:c.color,fontWeight:700,fontSize:28}}>{c.icon}</span>
+              </div>
+              <div className="result-decision" style={{color:c.color}}>{c.title}</div>
+              <div className="result-msg">{c.msg}</div>
+            </div>
+
+            <div className="score-bar-wrap" style={{paddingTop:24}}>
+              <div className="score-label-row">
+                <span className="score-label">Risk Score</span>
+                <span className="score-number" style={{color:scoreColor(result.riskScore)}}>
+                  {result.riskScore}<span style={{fontSize:13,color:'var(--muted)',fontWeight:400}}>/100</span>
+                </span>
+              </div>
+              <div className="score-track">
+                <div className="score-fill" style={{
+                  width:scoreAnim+'%',
+                  background:scoreColor(result.riskScore)
+                }}></div>
+              </div>
+            </div>
+
+            <div className="result-details">
+              {result.reasons && result.reasons.length > 0 ? (
+                <>
+                  <div className="detail-section-title">Risk Factors Detected</div>
+                  <div>
+                    {result.reasons.map((r,i)=>(
+                      <span key={i} className="reason-tag">⚠ {r}</span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <span className="reason-tag reason-tag-ok">✓ No risk factors — transaction looks clean</span>
+              )}
+              <div className="txn-summary">
+                <div className="txn-row">
+                  <span className="txn-key">From</span>
+                  <span className="txn-val">{form.senderName}</span>
+                </div>
+                <div className="txn-row">
+                  <span className="txn-key">To</span>
+                  <span className="txn-val">{result.upiId}</span>
+                </div>
+                <div className="txn-row">
+                  <span className="txn-key">Amount</span>
+                  <span className="txn-val">₹{Number(result.amount).toLocaleString('en-IN')}</span>
+                </div>
+                {result.note && (
+                  <div className="txn-row">
+                    <span className="txn-key">Note</span>
+                    <span className="txn-val">{result.note}</span>
+                  </div>
+                )}
+                <div className="txn-id">TXN ID: {result.id}</div>
+              </div>
+            </div>
+
+            <div className="result-footer">
+              <button className="btn-retry" onClick={reset}>← Make Another Payment</button>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
