@@ -10,7 +10,7 @@
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-[Live Demo](#) · [API Docs](#api-endpoints) · [System Design](#system-design-scaling-to-10m-transactionsday)
+[Live Demo](https://coruscating-blancmange-f2392a.netlify.app) · [API Docs](#api-endpoints) · [System Design](#system-design-scaling-to-10m-transactionsday)
 
 ### 97.8% Accuracy · 0.963 AUC-ROC · <10ms Latency · 8 Fraud Signals
 
